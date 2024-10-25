@@ -2,6 +2,8 @@ use std::fmt::Display;
 
 use crate::error::PqkdError;
 
+pub const MAX_SIZE_FOR_BYTES_FORMAT: u32 = 16 * 1024 * 1024;
+pub const MAX_SIZE_FOR_STRING_FORMAT: u32 = 256 * 1024;
 
 #[derive(Clone)]
 pub enum QrngFormat {
@@ -21,57 +23,28 @@ impl Display for QrngFormat {
 }
 
 impl QrngFormat {
-    pub fn check_size(&self, size: &QrngSize) -> Result<(), PqkdError> {
+    pub fn check_size(&self, size: u32) -> Result<(), PqkdError> {
         match self {
             QrngFormat::Hex | QrngFormat::Base64=> {
-                if size.size_to_bytes() > QrngSize::MAX_SIZE_FOR_STRING_FORMAT.size_to_bytes() {
+                if size > MAX_SIZE_FOR_STRING_FORMAT {
                     return Err(PqkdError::InvalidSize { 
                         format: self.to_string(),
-                        max_size: QrngSize::MAX_SIZE_FOR_STRING_FORMAT.size_to_bytes(),
-                        found: size.size_to_bytes()
+                        max_size: MAX_SIZE_FOR_STRING_FORMAT,
+                        found: size
                     });
                 }
             },
             QrngFormat::Bytes => {
-                if size.size_to_bytes() > QrngSize::MAX_SIZE_FOR_BYTES_FORMAT.size_to_bytes() {
+                if size > MAX_SIZE_FOR_BYTES_FORMAT {
                     return Err(PqkdError::InvalidSize { 
                         format: self.to_string(),
-                        max_size: QrngSize::MAX_SIZE_FOR_BYTES_FORMAT.size_to_bytes(),
-                        found: size.size_to_bytes()
+                        max_size: MAX_SIZE_FOR_BYTES_FORMAT,
+                        found: size
                     });
                 }
             },
         }
         Ok(())
-    }
-}
-
-pub enum QrngSize {
-    Bytes(u32),
-    Kilobytes(u32),
-    Megabytes(u32),
-}
-
-impl Display for QrngSize {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            QrngSize::Bytes(size) => write!(f, "{size}"),
-            QrngSize::Kilobytes(size) => write!(f, "{size}K"),
-            QrngSize::Megabytes(size) => write!(f, "{size}M"),
-        }
-    }
-}
-
-impl QrngSize {
-    pub const MAX_SIZE_FOR_BYTES_FORMAT: QrngSize = QrngSize::Bytes(16 * 1024 * 1024);
-    pub const MAX_SIZE_FOR_STRING_FORMAT: QrngSize = QrngSize::Bytes(256 * 1024);
-
-    pub fn size_to_bytes(&self) -> u32 {
-        match *self {
-            QrngSize::Bytes(val) => val,
-            QrngSize::Kilobytes(val) => val * 1024,
-            QrngSize::Megabytes(val) => val * 1024 * 1024,
-        }
     }
 }
 

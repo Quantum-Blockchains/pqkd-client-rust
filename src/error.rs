@@ -16,6 +16,12 @@ pub enum PqkdError {
     IoError(#[from] std::io::Error),
     #[error("min number of keys = 1")]
     NumberOfKeysError,
-    #[error("min key size = 64, and number must be divisible by 8")]
+    #[error("key size min = 64, max = 4096, and number must be divisible by 8")]
     SizeOfKeysError,
+    #[error("Pqkd builder error: {0}")]
+    BuildPqkdError(String),
+    #[error("Failed request to QRNG server.")]
+    ErrorQrngRequest,
+    #[error("Failed request to KME server.")]
+    ErrorKmeRequest,
 }
