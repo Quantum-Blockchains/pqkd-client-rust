@@ -76,4 +76,46 @@ impl QrngReturnFormat {
         }
     }
 }
-   
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn qrng_format_to_string() {
+        assert_eq!(QrngFormat::Hex.to_string(), "hex".to_string());
+        assert_eq!(QrngFormat::Base64.to_string(), "base64".to_string());
+        assert_eq!(QrngFormat::Bytes.to_string(), "bytes".to_string());
+    }
+
+    #[test]
+    fn check_size() {
+        assert!(QrngFormat::Bytes.check_size(1000).is_ok());
+        assert!(QrngFormat::Bytes.check_size(MAX_SIZE_FOR_BYTES_FORMAT).is_ok()); 
+        assert!(QrngFormat::Bytes.check_size(MAX_SIZE_FOR_BYTES_FORMAT + 1).is_err()); 
+
+        assert!(QrngFormat::Hex.check_size(1000).is_ok());
+        assert!(QrngFormat::Hex.check_size(MAX_SIZE_FOR_STRING_FORMAT).is_ok()); 
+        assert!(QrngFormat::Hex.check_size(MAX_SIZE_FOR_STRING_FORMAT + 1).is_err()); 
+
+        assert!(QrngFormat::Base64.check_size(1000).is_ok());
+        assert!(QrngFormat::Base64.check_size(MAX_SIZE_FOR_STRING_FORMAT).is_ok()); 
+        assert!(QrngFormat::Base64.check_size(MAX_SIZE_FOR_STRING_FORMAT + 1).is_err()); 
+    } 
+
+    #[test]
+    fn qrng_return_format_unwrap() {
+        assert!(QrngReturnFormat::Hex("123".to_string()).as_hex().is_some());
+        assert!(QrngReturnFormat::Base64("123".to_string()).as_hex().is_none());
+        assert!(QrngReturnFormat::Bytes(vec![1,2,3]).as_hex().is_none());
+
+        assert!(QrngReturnFormat::Hex("123".to_string()).as_bytes().is_none());
+        assert!(QrngReturnFormat::Base64("123".to_string()).as_bytes().is_none());
+        assert!(QrngReturnFormat::Bytes(vec![1,2,3]).as_bytes().is_some());
+
+        assert!(QrngReturnFormat::Hex("123".to_string()).as_base64().is_none());
+        assert!(QrngReturnFormat::Base64("123".to_string()).as_base64().is_some());
+        assert!(QrngReturnFormat::Bytes(vec![1,2,3]).as_base64().is_none());
+    }
+}
+ 

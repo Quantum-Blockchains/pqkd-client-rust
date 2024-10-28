@@ -374,7 +374,6 @@ impl PqkdClient {
 }
 
 impl PqkdClient {
-
     pub async fn kme_execute_request(&self, pqkd_request: PqkdRequest) -> Result<PqkdResponse, PqkdError>{
         match pqkd_request.pqkd_method() {
             PqkdMethod::Status => {
@@ -528,5 +527,19 @@ impl PqkdClient {
         let body = res.text().await.unwrap();
         let keys: Keys = serde_json::from_str(&body).unwrap();
         Ok(keys.keys)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_builder() {
+        let _pqkd_client = BuilderPqkdClient::with_addr("http://127.0.0.1:8082")
+            .unwrap()
+            .with_qrng_addr("http://127.0.0.1:8085")
+            .unwrap()
+            .build();
     }
 }
