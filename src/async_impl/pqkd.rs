@@ -85,6 +85,7 @@ pub struct PqkdClient {
     qrng_addr: Url,
     client: Client,
     local_target: Vec<u8>,
+    local_sae_id: String,
 }
 
 /// Build [PqkdClient](pqkd::PqkdClient) by combining an address KME server,
@@ -114,6 +115,7 @@ pub struct BuilderPqkdClient {
     qrng_addr: Url,
     client: Client,
     local_target: Vec<u8>,
+    local_sae_id: String,
 } 
 
 impl BuilderPqkdClient { 
@@ -146,6 +148,7 @@ impl BuilderPqkdClient {
                 .build()
                 .unwrap(),
             local_target: Vec::new(),
+            local_sae_id: String::new(),
         })
     }
 
@@ -174,6 +177,7 @@ impl BuilderPqkdClient {
             qrng_addr,
             client: self.client,
             local_target: self.local_target,
+            local_sae_id: self.local_sae_id,
         })
     }
     
@@ -206,6 +210,7 @@ impl BuilderPqkdClient {
             qrng_addr: self.qrng_addr,
             client: reqwest::Client::builder().use_native_tls().identity(id).add_root_certificate(ca_cert).build()?,
             local_target: self.local_target,
+            local_sae_id: self.local_sae_id,
         })
     }
     
@@ -215,6 +220,17 @@ impl BuilderPqkdClient {
             qrng_addr: self.qrng_addr,
             client: self.client,
             local_target: local_target,
+            local_sae_id: self.local_sae_id,
+        }
+    }
+
+    pub fn with_local_sae_id(self, local_sae_id: &str) -> Self {
+        Self { 
+            kme_addr: self.kme_addr,
+            qrng_addr: self.qrng_addr,
+            client: self.client,
+            local_target: self.local_target,
+            local_sae_id: String::from(local_sae_id),
         }
     }
 
@@ -246,6 +262,7 @@ impl BuilderPqkdClient {
             self.qrng_addr,
             self.client,
             self.local_target,
+            self.local_sae_id,
         )
     }
 }
@@ -253,12 +270,13 @@ impl BuilderPqkdClient {
 impl PqkdClient {
     /// Create a new ['PqkdClient'] from the given
     /// url of kme server, url of qrng server.
-    pub fn new(kme_addr: Url, qrng_addr: Url, client: Client, local_target: Vec<u8>) -> Self {
+    pub fn new(kme_addr: Url, qrng_addr: Url, client: Client, local_target: Vec<u8>, local_sae_id: String) -> Self {
         Self {
             kme_addr,   
             qrng_addr,
             client,
             local_target,
+            local_sae_id,
         }
     }
 
@@ -331,6 +349,10 @@ impl PqkdClient {
     
     pub async fn get_local_target(&self) -> Vec<u8> {
         self.local_target.clone()
+    }
+
+    pub async fn get_local_sae_id(&self) -> &str {
+        &self.local_sae_id
     }
 
     pub async fn get_sae_ids(&self) -> Result<Vec<String>, PqkdError> {
