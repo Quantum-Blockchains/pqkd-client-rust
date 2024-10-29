@@ -2,10 +2,11 @@ use url::Url;
 use serde_json::{json, Value};
 use crate::qrng::{QrngFormat, QrngReturnFormat};
 use crate::error::PqkdError;
-use crate::request_pqkd::{PqkdMethod, PqkdRequest, PqkdRequestBuilder, PqkdResponse};
+use crate::request::{PqkdMethod, PqkdRequest};
+use crate::response::PqkdResponse;
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
-
+use crate::{PqkdStatus, Keys, Key};
+use super::request_builder::PqkdRequestBuilder;
 
 /// Contains the necessary data for
 /// communication with the pQKD device.
@@ -83,6 +84,7 @@ pub struct PqkdClient {
     kme_addr: Url,
     qrng_addr: Url,
     client: Client,
+    local_target: Vec<u8>,
 }
 
 /// Build [PqkdClient](pqkd::PqkdClient) by combining an address KME server,
@@ -111,6 +113,7 @@ pub struct BuilderPqkdClient {
     kme_addr: Url,
     qrng_addr: Url,
     client: Client,
+    local_target: Vec<u8>,
 } 
 
 impl BuilderPqkdClient { 
@@ -142,6 +145,7 @@ impl BuilderPqkdClient {
                 .http1_title_case_headers()
                 .build()
                 .unwrap(),
+            local_target: Vec::new(),
         })
     }
 
@@ -169,6 +173,7 @@ impl BuilderPqkdClient {
             kme_addr: self.kme_addr,
             qrng_addr,
             client: self.client,
+            local_target: self.local_target,
         })
     }
     
@@ -200,9 +205,19 @@ impl BuilderPqkdClient {
             kme_addr: self.kme_addr,
             qrng_addr: self.qrng_addr,
             client: reqwest::Client::builder().use_native_tls().identity(id).add_root_certificate(ca_cert).build()?,
+            local_target: self.local_target,
         })
     }
     
+    pub fn with_local_target(self, local_target: Vec<u8>) -> Self {
+        Self { 
+            kme_addr: self.kme_addr,
+            qrng_addr: self.qrng_addr,
+            client: self.client,
+            local_target: local_target,
+        }
+    }
+
     /// Creates PqkdClient by passing it the data it contains and return it.
     /// 
     /// # Examples
@@ -230,62 +245,20 @@ impl BuilderPqkdClient {
             self.kme_addr,
             self.qrng_addr,
             self.client,
+            self.local_target,
         )
     }
-}
-
-/// Contains the status(information received from pQKD)
-/// of the connection between the pQKD device and the 
-/// other pQKD device.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub struct PqkdStatus {
-    pub max_key_count: u32,
-    pub max_key_per_request: u32,
-    pub max_key_size: u32,
-    #[serde(rename(deserialize = "source_KME_ID"))]
-    pub source_kme_id: String,
-    #[serde(rename(deserialize = "master_SAE_ID"))]
-    pub master_sae_id: String,
-    pub stored_key_count: u32,
-    pub min_key_size: u32,
-    #[serde(rename(deserialize = "max_SAE_ID_count"))]
-    pub max_sae_id_count: u32,
-    pub key_size: u32,
-}
-
-/// Contains the key and its ID, which generates and sends pQKD.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Key {
-    #[serde(rename(deserialize = "key_ID"))]
-    key_id: String,
-    key: String,
-}
-
-impl Key {
-    /// Returns the id of key.
-    pub fn key_id(&self) -> &str {
-        &self.key_id
-    }
-
-    /// Returns the key.
-    pub fn key(&self) -> &str {
-        &self.key
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Keys {
-    keys: Vec<Key>
 }
 
 impl PqkdClient {
     /// Create a new ['PqkdClient'] from the given
     /// url of kme server, url of qrng server.
-    pub fn new(kme_addr: Url, qrng_addr: Url, client: Client) -> Self {
+    pub fn new(kme_addr: Url, qrng_addr: Url, client: Client, local_target: Vec<u8>) -> Self {
         Self {
             kme_addr,   
             qrng_addr,
             client,
+            local_target,
         }
     }
 
@@ -356,8 +329,8 @@ impl PqkdClient {
         Ok(self._fetch_random(QrngFormat::Base64, size).await?.as_base64().unwrap())
     }
     
-    pub async fn get_local_sae_id(&self) -> Result<String, PqkdError> {
-        todo!();
+    pub async fn get_local_target(&self) -> Vec<u8> {
+        self.local_target.clone()
     }
 
     pub async fn get_sae_ids(&self) -> Result<Vec<String>, PqkdError> {

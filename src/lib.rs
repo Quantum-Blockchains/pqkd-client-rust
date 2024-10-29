@@ -14,14 +14,17 @@
 //! pqkd allows you to send keys to other pQKD devices,
 //! receive them and also receive random values from the
 //! pQKD device in hex, bytes, base64 format. 
-pub use crate::pqkd::BuilderPqkdClient;
-pub use crate::pqkd::PqkdClient;
-pub use crate::pqkd::PqkdStatus;
-pub use crate::request_pqkd::PqkdRequestBuilder;
-pub use crate::request_pqkd::PqkdResponse;
+pub use crate::async_impl::pqkd::BuilderPqkdClient;
+pub use crate::async_impl::pqkd::PqkdClient;
+pub use crate::async_impl::request_builder::PqkdRequestBuilder;
+pub use crate::response::{PqkdStatus, Key, PqkdResponse};
+pub(crate) use crate::response::Keys;
+
 
 pub mod qrng;
 pub mod error;
-pub mod pqkd;
-pub mod request_pqkd;
+pub mod blocking;
+mod async_impl;
+pub mod request;
+pub mod response;
 

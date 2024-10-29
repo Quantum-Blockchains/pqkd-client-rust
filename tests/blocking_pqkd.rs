@@ -1,10 +1,10 @@
-use pqkd::{PqkdStatus, BuilderPqkdClient};
+use pqkd::{PqkdStatus, blocking::BuilderPqkdClient};
 use serde_json::json;
 use httpmock::MockServer;
 
-#[tokio::test]
-async fn test_status() {
-    let kme_server = MockServer::start_async().await;
+#[test]
+fn test_status() {
+    let kme_server = MockServer::start();
     let addr_kme_server: String = format!("http://{}", kme_server.address());
     let response = json!(
         {
@@ -20,39 +20,39 @@ async fn test_status() {
         }
     );
 
-    kme_server.mock_async(|when, then| {
+    kme_server.mock(|when, then| {
         when.method("GET")
             .path("/api/v1/keys/Test_2SAE/status");
         then.status(200)
             .header("content-type", "application/json")
             .json_body(response.clone());
-    }).await;
+    });
 
     let pqkd_client = BuilderPqkdClient::with_addr(&addr_kme_server)
         .unwrap()
         .build();
 
-    let result = pqkd_client.status("Test_2SAE").send().await.unwrap().as_status().unwrap();
+    let result = pqkd_client.status("Test_2SAE").send().unwrap().as_status().unwrap();
     
     assert_eq!(result, serde_json::from_str::<PqkdStatus>(&response.to_string()).unwrap());
 }
 
-#[tokio::test]
-async fn test_enc_key() {
-    let kme_server = MockServer::start_async().await;
+#[test]
+fn test_enc_key() {
+    let kme_server = MockServer::start();
     let addr_kme_server: String = format!("http://{}", kme_server.address());
     let response_key_id = "17d3e519-10e9-43e6-bd7a-72b2da710dcd";
     let response_key = "lRXjNYtHITV4KXkdIJZN/Pv0ojAkuLGwzwumMev959w=GR6XALTLg+B5I6jP/OlVDLQR3+j8PtpevhajPYY0hkM=";
     let response_key_size = 512u16;
 
-    kme_server.mock_async(|when, then| {
+    kme_server.mock(|when, then| {
         when.method("POST")
             .path("/api/v1/keys/Test_2SAE/enc_keys")
             .json_body(json!({"size": response_key_size, "number": 1}));
         then.status(200)
             .header("content-type", "application/json")
             .json_body(json!({"keys": [{"key_ID": response_key_id, "key": response_key}]}));
-    }).await;
+    });
 
     let pqkd_client = BuilderPqkdClient::with_addr(&addr_kme_server)
         .unwrap()
@@ -61,7 +61,6 @@ async fn test_enc_key() {
     let result = pqkd_client.enc_keys("Test_2SAE")
         .size(response_key_size)
         .send()
-        .await
         .unwrap()
         .keys();
     
@@ -69,9 +68,9 @@ async fn test_enc_key() {
     assert_eq!(result[0].key_id(), response_key_id);
 }
 
-#[tokio::test]
-async fn test_enc_keys() {
-    let kme_server = MockServer::start_async().await;
+#[test]
+fn test_enc_keys() {
+    let kme_server = MockServer::start();
     let addr_kme_server: String = format!("http://{}", kme_server.address());
     
     let keys = vec![
@@ -85,14 +84,14 @@ async fn test_enc_keys() {
     let keys_json: Vec<serde_json::Value> = keys.iter().map(|(key_id, key)| json!({"key_ID": *key_id, "key": *key})).collect();
 
 
-    kme_server.mock_async(|when, then| {
+    kme_server.mock(|when, then| {
         when.method("POST")
             .path("/api/v1/keys/Test_2SAE/enc_keys")
             .json_body(json!({"size": response_key_size, "number": number}));
         then.status(200)
             .header("content-type", "application/json")
             .json_body(json!({"keys": keys_json}));
-    }).await;
+    });
 
     let pqkd_client = BuilderPqkdClient::with_addr(&addr_kme_server)
         .unwrap()
@@ -102,7 +101,6 @@ async fn test_enc_keys() {
         .number(number)
         .size(response_key_size)
         .send()
-        .await
         .unwrap()
         .keys();
     
@@ -111,9 +109,9 @@ async fn test_enc_keys() {
     assert_eq!(result, keys);
 }
 
-#[tokio::test]
-async fn test_enc_keys_with_key_ids() {
-    let kme_server = MockServer::start_async().await;
+#[test]
+fn test_enc_keys_with_key_ids() {
+    let kme_server = MockServer::start();
     let addr_kme_server: String = format!("http://{}", kme_server.address());
     
     let keys = vec![
@@ -126,14 +124,14 @@ async fn test_enc_keys_with_key_ids() {
     let keys_json: Vec<serde_json::Value> = keys.iter().map(|(key_id, key)| json!({"key_ID": *key_id, "key": *key})).collect();
     let keys_ids: Vec<&str> = keys.iter().map(|(key_id, _)| *key_id).collect();
 
-    kme_server.mock_async(|when, then| {
+    kme_server.mock(|when, then| {
         when.method("POST")
             .path("/api/v1/keys/Test_2SAE/enc_keys")
             .json_body(json!({"size": response_key_size, "key_IDs": keys_ids}));
         then.status(200)
             .header("content-type", "application/json")
             .json_body(json!({"keys": keys_json}));
-    }).await;
+    });
 
     let pqkd_client = BuilderPqkdClient::with_addr(&addr_kme_server)
         .unwrap()
@@ -143,7 +141,6 @@ async fn test_enc_keys_with_key_ids() {
         .size(response_key_size)
         .key_ids(keys_ids)
         .send()
-        .await
         .unwrap()
         .keys();
     
@@ -152,14 +149,14 @@ async fn test_enc_keys_with_key_ids() {
     assert_eq!(result, keys);
 }
 
-#[tokio::test]
-async fn test_dec_key() {
-    let kme_server = MockServer::start_async().await;
+#[test]
+fn test_dec_key() {
+    let kme_server = MockServer::start();
     let addr_kme_server: String = format!("http://{}", kme_server.address());
     let response_key_id = "17d3e519-10e9-43e6-bd7a-72b2da710dcd";
     let response_key = "lRXjNYtHITV4KXkdIJZN/Pv0ojAkuLGwzwumMev959w=GR6XALTLg+B5I6jP/OlVDLQR3+j8PtpevhajPYY0hkM=";
 
-    kme_server.mock_async(|when, then| {
+    kme_server.mock(|when, then| {
         when.method("POST")
             .path("/api/v1/keys/Test_1SAE/dec_keys")
             .json_body(json!(
@@ -172,7 +169,7 @@ async fn test_dec_key() {
         then.status(200)
             .header("content-type", "application/json")
             .json_body(json!({"keys": [{"key_ID": response_key_id, "key": response_key}]}));
-    }).await;
+    });
 
     let pqkd_client = BuilderPqkdClient::with_addr(&addr_kme_server)
         .unwrap()
@@ -181,7 +178,6 @@ async fn test_dec_key() {
     let result = pqkd_client.dec_keys("Test_1SAE")
         .key_id(&response_key_id)
         .send()
-        .await
         .unwrap()
         .keys();
     
@@ -189,9 +185,9 @@ async fn test_dec_key() {
     assert_eq!(result[0].key_id(), response_key_id);
 }
 
-#[tokio::test]
-async fn test_dec_keys() {
-    let kme_server =MockServer::start_async().await;
+#[test]
+fn test_dec_keys() {
+    let kme_server =MockServer::start();
     let addr_kme_server: String = format!("http://{}", kme_server.address());
     let keys = vec![
         ("17d3e519-10e9-43e6-bd7a-72b2da710dcd", "lRXjNYtHITV4KXkdIJZN/Pv0ojAkuLGwzwumMev959w=GR6XALTLg+B5I6jP/OlVDLQR3+j8PtpevhajPYY0hkM="),
@@ -203,7 +199,7 @@ async fn test_dec_keys() {
     let key_ids: Vec<&str> = keys.iter().map(|(key_id, _)| *key_id).collect(); 
     let key_ids_json: Vec<serde_json::Value> = keys.iter().map(|(key_id, _)| json!({"key_ID": *key_id})).collect();
     
-    kme_server.mock_async(|when, then| {
+    kme_server.mock(|when, then| {
         when.method("POST")
             .path("/api/v1/keys/Test_1SAE/dec_keys")
             .header("content-type", "application/json")
@@ -213,7 +209,7 @@ async fn test_dec_keys() {
         then.status(200)
             .header("content-type", "application/json")
             .json_body(json!({"keys": keys_json}));
-    }).await;
+    });
 
     let pqkd_client = BuilderPqkdClient::with_addr(&addr_kme_server)
         .unwrap()
@@ -222,7 +218,6 @@ async fn test_dec_keys() {
     let result = pqkd_client.dec_keys("Test_1SAE")
         .key_ids(key_ids)
         .send()
-        .await
         .unwrap()
         .keys();
     let result: Vec<(&str, &str)> = result.iter().map(|key| (key.key_id(), key.key())).collect();
