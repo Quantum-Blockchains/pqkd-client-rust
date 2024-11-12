@@ -1,13 +1,12 @@
 use crate::{error::PqkdError, request::PqkdRequest, PqkdClient, PqkdResponse};
 
-
 pub struct PqkdRequestBuilder {
     pqkd_client: PqkdClient,
     pqkd_request: Result<PqkdRequest, PqkdError>,
 }
 
 impl PqkdRequestBuilder {
-    pub fn new (pqkd_client: PqkdClient, pqkd_request: PqkdRequest) -> Self {
+    pub fn new(pqkd_client: PqkdClient, pqkd_request: PqkdRequest) -> Self {
         PqkdRequestBuilder {
             pqkd_client,
             pqkd_request: Ok(pqkd_request),
@@ -18,10 +17,9 @@ impl PqkdRequestBuilder {
     pub fn size(mut self, size: u16) -> PqkdRequestBuilder {
         let mut error = None;
         if let Ok(ref mut pqkd_request) = self.pqkd_request {
-            if size < 64 || size%8 != 0 || size > 4096 { 
+            if size < 64 || size % 8 != 0 || size > 4096 {
                 error = Some(PqkdError::SizeOfKeysError);
-            }
-            else {
+            } else {
                 pqkd_request.set_size(size);
             }
         }
@@ -35,10 +33,9 @@ impl PqkdRequestBuilder {
     pub fn number(mut self, number: u32) -> PqkdRequestBuilder {
         let mut error = None;
         if let Ok(ref mut pqkd_request) = self.pqkd_request {
-            if number == 0 { 
+            if number == 0 {
                 error = Some(PqkdError::NumberOfKeysError);
-            }
-            else {
+            } else {
                 pqkd_request.set_number(number);
             }
         }
@@ -76,5 +73,5 @@ impl PqkdRequestBuilder {
             Err(err) => Err(err),
         }
     }
-
 }
+
